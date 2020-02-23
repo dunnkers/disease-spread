@@ -1,4 +1,3 @@
-# FROM osgeo/gdal:alpine-normal-latest
 FROM osgeo/gdal:ubuntu-full-latest
 
 RUN apt-get update && apt-get install -y python3-pip
