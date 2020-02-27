@@ -1,0 +1,21 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algorithmdeployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: algorithm
+  template:
+    metadata:
+      labels:
+        app: algorithm
+    spec:
+      containers:
+        - name: algorithm
+          image: dunnkers/disease-spread:algorithm
+          imagePullPolicy: "Always"
+        #   ports:
+        #     - containerPort: 3001
