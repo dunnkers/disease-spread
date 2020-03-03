@@ -1,0 +1,19 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sparkprocessordeployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sparkprocessor
+  template:
+    metadata:
+      labels:
+        app: sparkprocessor
+    spec:
+      containers:
+        - name: sparkprocessor
+          image: dunnkers/disease-spread:spark
+          imagePullPolicy: "Always"
