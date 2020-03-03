@@ -57,7 +57,8 @@ spec:
           value: my-kafka:9092
 ```
 
-
+(can easily be done in the GCP UI)
+![Screenshot from 2020-03-03 10-39-58](https://user-images.githubusercontent.com/744430/75763328-601aa000-5d3c-11ea-9e1a-4b0d8a696eb0.png)
 
 Finally, optionally expose Kafdrop externally using a `LoadBalancer`:
 
