@@ -1,6 +1,6 @@
 # 2020_group_01_s4192044_s2546736_s2995697
 
-## General architecture
+## General architecture - configuring GCP
 
 GCP: Google Cloud Platform.
 
@@ -23,11 +23,49 @@ https://medium.com/google-cloud/helm-on-gke-cluster-quick-hands-on-guide-ecffad9
 (if, you are getting a 'namespace default forbidden' error: https://github.com/fnproject/fn-helm/issues/21#issue-312627792)
 
 ... wait a bit untill tiller pods are ready.
+
+## Installing a Kafka cluster
 6. Install Kafka using a chart
 https://github.com/helm/charts/tree/master/incubator/kafka
 
+e.g.:
+```shell
+helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+helm install --name my-kafka incubator/kafka
+```
+
+## Installing Kafdrop
+7. Installing Kafdrop
+
+e.g. using default settings:
+```shell
+git clone https://github.com/obsidiandynamics/kafdrop && cd kafdrop
+helm upgrade -i kafdrop chart
+```
+
+Then, configure the broker address as `my-kafka:9092`:
+
+```yaml
+apiVersion: apps/v1
+# [...]
+spec:
+  template:
+    spec:
+      containers:
+      - env:
+        - name: KAFKA_BROKERCONNECT
+          value: my-kafka:9092
+```
 
 
+
+Finally, optionally expose Kafdrop externally using a `LoadBalancer`:
+
+```shell
+kubectl expose deployment kafdrop --type=LoadBalancer --name=kafdrop-external-service
+```
+
+This will create an external IP address such that you can access Kafdrop from your browser. ✌🏼 (in production though, you will probably not want to do this.)
 <!-- 
 1. We use **Helm** to obtain 'charts' (packages) for Kubernetes:
 https://docs.bitnami.com/google/get-started-gke/#step-4-install-and-configure-helm
