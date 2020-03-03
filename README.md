@@ -81,3 +81,57 @@ https://docs.bitnami.com/google/get-started-gke/#step-4-install-and-configure-he
     helm repo add bitnami https://charts.bitnami.com/bitnami
     helm install my-release bitnami/spark
     ``` -->
+
+## Install spark
+
+8. Installing a Spark cluster
+https://github.com/helm/charts/tree/master/stable/spark
+
+```shell
+helm install --name my-spark stable/spark
+```
+
+
+## Upgrading Kubernetes cluster machine types
+
+(from: https://cloud.google.com/kubernetes-engine/docs/tutorials/migrating-node-pool)
+
+First, obtain the name of the node pool you want to upgrade:
+```shell
+gcloud container node-pools list
+```
+
+Then, upgrade the machine types:
+```shell
+gcloud container node-pools create larger-pool --cluster=cluster-1 --machine-type=n1-standard-1 --num-nodes=3
+```
+
+Now, make the previous pool nodes "unschedulable". Retrieve pool node names:
+
+```shell
+kubectl get nodes -l cloud.google.com/gke-nodepool=default-pool
+```
+
+Then for every node:
+
+```shell
+kubectl cordon <NODE>
+```
+
+After all nodes have been 'cordoned', 'drain' every node:
+
+```shell
+kubectl drain --force --ignore-daemonsets --delete-local-data --grace-period=10 <NODE>
+```
+
+Finally, we delete the old node pool:
+
+```shell
+gcloud container node-pools delete default-pool --cluster cluster-1
+```
+
+We can verify there exist only one node pool now using:
+
+```shell
+gcloud container node-pools list --cluster cluster-1
+```
