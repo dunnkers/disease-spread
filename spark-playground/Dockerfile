@@ -64,3 +64,14 @@ RUN conda install --quiet -y 'pyarrow' && \
     conda clean --all -f -y && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER
+
+
+# RUN pip install -r requirements.txt
+
+# Create environment for correct python version
+RUN conda create -n py27 python=2.7 -y && \
+    conda activate py27 && \
+    conda install ipykernel -y && \
+    python -m ipykernel install --user --name py27 --display-name "Python 2.7" && \
+    pip install findspark && \
+    pip install py4j

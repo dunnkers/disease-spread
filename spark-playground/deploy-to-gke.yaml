@@ -17,3 +17,5 @@ spec:
         - name: sparknotebook
           image: dunnkers/disease-spread:spark
           imagePullPolicy: "Always"
+          ports:
+            - containerPort: 8888
