@@ -90,7 +90,30 @@ https://github.com/helm/charts/tree/master/stable/spark
 ```shell
 helm install --name my-spark stable/spark
 ```
+## Installing mongodb
 
+To  install the mongodb helm chart with a repo stable that looks at https://kubernetes-charts.storage.googleapis.com/: 
+```shell
+helm install my-mongodb stable/mongodb-7.8.7
+```
+
+This will create a mongodb node witha an associated service ánd generates a secret called `mongodb-root-password` for authentication. To use it in a container that is supposed to connect to mongodb add the following to the container environment variables section in the deployment yaml:
+```yaml
+...
+env:
+  - name: MONGODB_ROOT_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        key: mongodb-root-password
+        name: my-mongodb
+...
+```
+
+Then the password can be used like in the following python snippet:
+```python
+password = os.getenv('MONGODB_ROOT_PASSWORD')
+client = pymongo.MongoClient('mongodb://root:{}@my-mongodb:27017'.format(password))
+```
 
 ## Upgrading Kubernetes cluster machine types
 
