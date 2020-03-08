@@ -2,18 +2,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sparkprocessordeployment
+  name: sparknotebook-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sparkprocessor
+      app: sparknotebook
   template:
     metadata:
       labels:
-        app: sparkprocessor
+        app: sparknotebook
     spec:
       containers:
-        - name: sparkprocessor
+        - name: sparknotebook
           image: dunnkers/disease-spread:spark
           imagePullPolicy: "Always"

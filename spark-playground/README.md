@@ -1,6 +1,7 @@
 ## Install
 
-1. Run Spark.
+Build Docker image & upload to Docker Hub.
+<!-- 1. Run Spark.
 
 2. Prepare virtual environment
 
@@ -22,4 +23,4 @@ source ./venv/bin/activate
 ```shell
 pip3 install <package>
 pip3 freeze > requirements.txt
-```
+``` -->
