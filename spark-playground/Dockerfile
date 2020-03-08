@@ -68,6 +68,8 @@ RUN conda install --quiet -y 'pyarrow' && \
 
 # RUN pip install -r requirements.txt
 
+
+## WARNING! THIS PIECE OF CODE UNTESTED, WAS EXECUTED ON CLUSTER ITSELF.
 # Create environment for correct python version
 RUN conda create -n py27 python=2.7 -y && \
     conda activate py27 && \
