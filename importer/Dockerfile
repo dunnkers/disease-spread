@@ -1,205 +1,254 @@
-## MODIFIED FOR DISEASE SPREAD PROJECT FROM:
-# osgeo/gdal:ubuntu-small
+## First, base upon GDAL image. and install some stuff
+FROM osgeo/gdal:ubuntu-full-latest
+RUN apt-get update && apt-get install -y python3-pip
+RUN pip3 install rasterio shapely kafka
 
 
+## Then, install Jupyter docker-stacks notebook on top.
+########
+# Base Notebook
+# https://github.com/jupyter/docker-stacks/blob/master/base-notebook/Dockerfile
+########
 
-ARG PROJ_INSTALL_PREFIX=/usr/local
-
-FROM jupyter/scipy-notebook as builder
+LABEL maintainer="Jupyter Project <jupyter@googlegroups.com>"
+ARG NB_USER="jovyan"
+ARG NB_UID="1000"
+ARG NB_GID="100"
 
 USER root
 
-# Setup build env for PROJ
-RUN apt-get update -y \
-    && apt-get install -y --fix-missing --no-install-recommends \
-    software-properties-common build-essential ca-certificates \
-    git make cmake wget unzip libtool automake \
-    zlib1g-dev libsqlite3-dev pkg-config sqlite3 libcurl4-gnutls-dev \
-    libtiff5-dev
+# Install all OS dependencies for notebook server that starts but lacks all
+# features (e.g., download as all possible file formats)
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install -yq --no-install-recommends \
+    wget \
+    bzip2 \
+    ca-certificates \
+    sudo \
+    locales \
+    fonts-liberation \
+    run-one \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Setup build env for GDAL
-RUN apt-get update -y \
-    && apt-get install -y --fix-missing --no-install-recommends \
-    python3-dev python3-numpy \
-    libjpeg-dev libgeos-dev \
-    libexpat-dev libxerces-c-dev \
-    libwebp-dev \
-    libzstd1-dev bash zip curl \
-    libpq-dev libssl-dev \
-    autoconf automake sqlite3 bash-completion
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen
 
-# Build openjpeg
-ARG OPENJPEG_VERSION=2.3.1
-RUN if test "${OPENJPEG_VERSION}" != ""; then ( \
-    wget -q https://github.com/uclouvain/openjpeg/archive/v${OPENJPEG_VERSION}.tar.gz \
-    && tar xzf v${OPENJPEG_VERSION}.tar.gz \
-    && rm -f v${OPENJPEG_VERSION}.tar.gz \
-    && cd openjpeg-${OPENJPEG_VERSION} \
-    && cmake . -DBUILD_SHARED_LIBS=ON  -DBUILD_STATIC_LIBS=OFF -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=/usr \
-    && make -j$(nproc) \
-    && make install \
-    && mkdir -p /build_thirdparty/usr/lib \
-    && cp -P /usr/lib/libopenjp2*.so* /build_thirdparty/usr/lib \
-    && for i in /build_thirdparty/usr/lib/*; do strip -s $i 2>/dev/null || /bin/true; done \
-    && cd .. \
-    && rm -rf openjpeg-${OPENJPEG_VERSION} \
-    ); fi
+# Configure environment
+ENV CONDA_DIR=/opt/conda \
+    SHELL=/bin/bash \
+    NB_USER=$NB_USER \
+    NB_UID=$NB_UID \
+    NB_GID=$NB_GID \
+    LC_ALL=en_US.UTF-8 \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US.UTF-8
+ENV PATH=$CONDA_DIR/bin:$PATH \
+    HOME=/home/$NB_USER
 
-ARG PROJ_INSTALL_PREFIX
-ARG PROJ_DATUMGRID_LATEST_LAST_MODIFIED
-RUN \
-    mkdir -p /build_projgrids/${PROJ_INSTALL_PREFIX}/share/proj \
-    && curl -LOs http://download.osgeo.org/proj/proj-datumgrid-latest.zip \
-    && unzip -q -j -u -o proj-datumgrid-latest.zip  -d /build_projgrids/${PROJ_INSTALL_PREFIX}/share/proj \
-    && rm -f *.zip
+# Copy a script that we will use to correct permissions after running certain commands
+COPY fix-permissions /usr/local/bin/fix-permissions
+RUN chmod a+rx /usr/local/bin/fix-permissions
 
-RUN apt-get update -y \
-    && apt-get install -y --fix-missing --no-install-recommends rsync ccache
-ARG RSYNC_REMOTE
+# Enable prompt color in the skeleton .bashrc before creating the default NB_USER
+RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc
 
-# Build PROJ
-ARG PROJ_VERSION=master
-RUN mkdir proj \
-    && wget -q https://github.com/OSGeo/proj.4/archive/${PROJ_VERSION}.tar.gz -O - \
-    | tar xz -C proj --strip-components=1 \
-    && cd proj \
-    && ./autogen.sh \
-    && if test "${RSYNC_REMOTE}" != ""; then \
-    echo "Downloading cache..."; \
-    rsync -ra ${RSYNC_REMOTE}/proj/ $HOME/; \
-    echo "Finished"; \
-    export CC="ccache gcc"; \
-    export CXX="ccache g++"; \
-    export PROJ_DB_CACHE_DIR="$HOME/.ccache"; \
-    ccache -M 100M; \
-    fi \
-    && CFLAGS='-DPROJ_RENAME_SYMBOLS -O2' CXXFLAGS='-DPROJ_RENAME_SYMBOLS -O2' \
-    ./configure --prefix=${PROJ_INSTALL_PREFIX} --disable-static \
-    && make -j$(nproc) \
-    && make install DESTDIR="/build" \
-    && if test "${RSYNC_REMOTE}" != ""; then \
-    ccache -s; \
-    echo "Uploading cache..."; \
-    rsync -ra --delete $HOME/.ccache ${RSYNC_REMOTE}/proj/; \
-    echo "Finished"; \
-    rm -rf $HOME/.ccache; \
-    unset CC; \
-    unset CXX; \
-    fi \
-    && cd .. \
-    && rm -rf proj \
-    && PROJ_SO=$(readlink /build${PROJ_INSTALL_PREFIX}/lib/libproj.so | sed "s/libproj\.so\.//") \
-    && PROJ_SO_FIRST=$(echo $PROJ_SO | awk 'BEGIN {FS="."} {print $1}') \
-    && mv /build${PROJ_INSTALL_PREFIX}/lib/libproj.so.${PROJ_SO} /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so.${PROJ_SO} \
-    && ln -s libinternalproj.so.${PROJ_SO} /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so.${PROJ_SO_FIRST} \
-    && ln -s libinternalproj.so.${PROJ_SO} /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so \
-    && rm /build${PROJ_INSTALL_PREFIX}/lib/libproj.*  \
-    && ln -s libinternalproj.so.${PROJ_SO} /build${PROJ_INSTALL_PREFIX}/lib/libproj.so.${PROJ_SO_FIRST} \
-    && strip -s /build${PROJ_INSTALL_PREFIX}/lib/libinternalproj.so.${PROJ_SO} \
-    && for i in /build${PROJ_INSTALL_PREFIX}/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+# Create NB_USER wtih name jovyan user with UID=1000 and in the 'users' group
+# and make sure these dirs are writable by the `users` group.
+RUN echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
+    sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
+    sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
+    useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
+    mkdir -p $CONDA_DIR && \
+    chown $NB_USER:$NB_GID $CONDA_DIR && \
+    chmod g+w /etc/passwd && \
+    fix-permissions $HOME && \
+    fix-permissions $CONDA_DIR
 
-# Build GDAL
-ARG GDAL_VERSION=master
-ARG GDAL_RELEASE_DATE
-ARG GDAL_BUILD_IS_RELEASE
-RUN if test "${GDAL_VERSION}" = "master"; then \
-    export GDAL_VERSION=$(curl -Ls https://api.github.com/repos/OSGeo/gdal/commits/HEAD -H "Accept: application/vnd.github.VERSION.sha"); \
-    export GDAL_RELEASE_DATE=$(date "+%Y%m%d"); \
-    fi \
-    && if test "x${GDAL_BUILD_IS_RELEASE}" = "x"; then \
-    export GDAL_SHA1SUM=${GDAL_VERSION}; \
-    fi \
-    && mkdir gdal \
-    && wget -q https://github.com/OSGeo/gdal/archive/${GDAL_VERSION}.tar.gz -O - \
-    | tar xz -C gdal --strip-components=1 \
-    && cd gdal/gdal \
-    && if test "${RSYNC_REMOTE}" != ""; then \
-    echo "Downloading cache..."; \
-    rsync -ra ${RSYNC_REMOTE}/gdal/ $HOME/; \
-    echo "Finished"; \
-    # Little trick to avoid issues with Python bindings
-    printf "#!/bin/sh\nccache gcc \$*" > ccache_gcc.sh; \
-    chmod +x ccache_gcc.sh; \
-    printf "#!/bin/sh\nccache g++ \$*" > ccache_g++.sh; \
-    chmod +x ccache_g++.sh; \
-    export CC=$PWD/ccache_gcc.sh; \
-    export CXX=$PWD/ccache_g++.sh; \
-    ccache -M 1G; \
-    fi \
-    && ./configure --prefix=/usr --without-libtool \
-    --with-hide-internal-symbols \
-    --with-jpeg12 \
-    --with-python \
-    --with-webp --with-proj=/build${PROJ_INSTALL_PREFIX} \
-    --with-libtiff=internal --with-rename-internal-libtiff-symbols \
-    --with-geotiff=internal --with-rename-internal-libgeotiff-symbols \
-    && make -j$(nproc) \
-    && make install DESTDIR="/build" \
-    && if test "${RSYNC_REMOTE}" != ""; then \
-    ccache -s; \
-    echo "Uploading cache..."; \
-    rsync -ra --delete $HOME/.ccache ${RSYNC_REMOTE}/gdal/; \
-    echo "Finished"; \
-    rm -rf $HOME/.ccache; \
-    unset CC; \
-    unset CXX; \
-    fi \
-    && cd ../.. \
-    && rm -rf gdal \
-    && mkdir -p /build_gdal_python/usr/lib \
-    && mkdir -p /build_gdal_python/usr/bin \
-    && mkdir -p /build_gdal_version_changing/usr/include \
-    && mv /build/usr/lib/python3            /build_gdal_python/usr/lib \
-    && mv /build/usr/lib                    /build_gdal_version_changing/usr \
-    && mv /build/usr/include/gdal_version.h /build_gdal_version_changing/usr/include \
-    && mv /build/usr/bin/*.py               /build_gdal_python/usr/bin \
-    && mv /build/usr/bin                    /build_gdal_version_changing/usr \
-    && for i in /build_gdal_version_changing/usr/lib/*; do strip -s $i 2>/dev/null || /bin/true; done \
-    && for i in /build_gdal_python/usr/lib/python3/dist-packages/osgeo/*.so; do strip -s $i 2>/dev/null || /bin/true; done \
-    && for i in /build_gdal_version_changing/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+USER $NB_UID
+WORKDIR $HOME
+ARG PYTHON_VERSION=default
 
-# Build final image
-FROM ubuntu:18.04 as runner
+# Setup work directory for backward-compatibility
+RUN mkdir /home/$NB_USER/work && \
+    fix-permissions /home/$NB_USER
 
-RUN date
+# Install conda as jovyan and check the md5 sum provided on the download site
+ENV MINICONDA_VERSION=4.7.12.1 \
+    MINICONDA_MD5=81c773ff87af5cfac79ab862942ab6b3 \
+    CONDA_VERSION=4.7.12
 
-# PROJ dependencies
-RUN apt-get update; \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y  --no-install-recommends \
-    libsqlite3-0 libtiff5 libcurl4 \
-    curl unzip ca-certificates
+RUN cd /tmp && \
+    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh && \
+    echo "${MINICONDA_MD5} *Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh" | md5sum -c - && \
+    /bin/bash Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
+    rm Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh && \
+    echo "conda ${CONDA_VERSION}" >> $CONDA_DIR/conda-meta/pinned && \
+    conda config --system --prepend channels conda-forge && \
+    conda config --system --set auto_update_conda false && \
+    conda config --system --set show_channel_urls true && \
+    conda config --system --set channel_priority strict && \
+    if [ ! $PYTHON_VERSION = 'default' ]; then conda install --yes python=$PYTHON_VERSION; fi && \
+    conda list python | grep '^python ' | tr -s ' ' | cut -d '.' -f 1,2 | sed 's/$/.*/' >> $CONDA_DIR/conda-meta/pinned && \
+    conda install --quiet --yes conda && \
+    conda install --quiet --yes pip && \
+    conda update --all --quiet --yes && \
+    conda clean --all -f -y && \
+    rm -rf /home/$NB_USER/.cache/yarn && \
+    fix-permissions $CONDA_DIR && \
+    fix-permissions /home/$NB_USER
 
-# GDAL dependencies
-RUN apt-get update -y; \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y  --no-install-recommends \
-    python3-numpy libpython3.6 \
-    libjpeg-turbo8 libgeos-3.6.2 libgeos-c1v5 \
-    libexpat1 \
-    libxerces-c3.2 \
-    libwebp6 \
-    libzstd1 bash libpq5 libssl1.1
+# Install Tini
+RUN conda install --quiet --yes 'tini=0.18.0' && \
+    conda list tini | grep tini | tr -s ' ' | cut -d ' ' -f 1,2 >> $CONDA_DIR/conda-meta/pinned && \
+    conda clean --all -f -y && \
+    fix-permissions $CONDA_DIR && \
+    fix-permissions /home/$NB_USER
 
-# Order layers starting with less frequently varying ones
-COPY --from=builder  /build_thirdparty/usr/ /usr/
+# Install Jupyter Notebook, Lab, and Hub
+# Generate a notebook server config
+# Cleanup temporary files
+# Correct permissions
+# Do all this in a single RUN command to avoid duplicating all of the
+# files across image layers when the permissions change
+RUN conda install --quiet --yes \
+    'notebook=6.0.3' \
+    'jupyterhub=1.1.0' \
+    'jupyterlab=1.2.5' && \
+    conda clean --all -f -y && \
+    npm cache clean --force && \
+    jupyter notebook --generate-config && \
+    rm -rf $CONDA_DIR/share/jupyter/lab/staging && \
+    rm -rf /home/$NB_USER/.cache/yarn && \
+    fix-permissions $CONDA_DIR && \
+    fix-permissions /home/$NB_USER
 
-COPY --from=builder  /build_projgrids/usr/ /usr/
+EXPOSE 8888
 
-ARG PROJ_INSTALL_PREFIX
-COPY --from=builder  /build${PROJ_INSTALL_PREFIX}/share/proj/ ${PROJ_INSTALL_PREFIX}/share/proj/
-COPY --from=builder  /build${PROJ_INSTALL_PREFIX}/include/ ${PROJ_INSTALL_PREFIX}/include/
-COPY --from=builder  /build${PROJ_INSTALL_PREFIX}/bin/ ${PROJ_INSTALL_PREFIX}/bin/
-COPY --from=builder  /build${PROJ_INSTALL_PREFIX}/lib/ ${PROJ_INSTALL_PREFIX}/lib/
+# Configure container startup
+ENTRYPOINT ["tini", "-g", "--"]
+CMD ["start-notebook.sh"]
 
-COPY --from=builder  /build/usr/share/gdal/ /usr/share/gdal/
-COPY --from=builder  /build/usr/include/ /usr/include/
-COPY --from=builder  /build_gdal_python/usr/ /usr/
-COPY --from=builder  /build_gdal_version_changing/usr/ /usr/
+# Copy local files as late as possible to avoid cache busting
+COPY start.sh start-notebook.sh start-singleuser.sh /usr/local/bin/
+COPY jupyter_notebook_config.py /etc/jupyter/
 
-RUN ldconfig
+# Fix permissions on /etc/jupyter as root
+USER root
+RUN fix-permissions /etc/jupyter/
 
+# Switch back to jovyan to avoid accidental container runs as root
+USER $NB_UID
 
-## OUR OWN CODE AGAIN
-RUN apt-get update && apt-get install -y python3-pip
-RUN pip3 install rasterio shapely kafka
-ENTRYPOINT /bin/bash
+########
+# Minimal Notebook
+# https://github.com/jupyter/docker-stacks/blob/master/minimal-notebook/Dockerfile
+########
+
+USER root
+
+# Install all OS dependencies for fully functional notebook server
+RUN apt-get update && apt-get install -yq --no-install-recommends \
+    build-essential \
+    emacs \
+    git \
+    inkscape \
+    jed \
+    libsm6 \
+    libxext-dev \
+    libxrender1 \
+    lmodern \
+    netcat \
+    python-dev \
+    # ---- nbconvert dependencies ----
+    texlive-xetex \
+    texlive-fonts-recommended \
+    texlive-generic-recommended \
+    # Optional dependency
+    texlive-fonts-extra \
+    # ----
+    tzdata \
+    unzip \
+    nano \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Switch back to jovyan to avoid accidental container runs as root
+USER $NB_UID
+
+########
+# Scipy Notebook
+# https://github.com/jupyter/docker-stacks/tree/master/scipy-notebook
+########
+
+USER root
+
+# ffmpeg for matplotlib anim
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
+USER $NB_UID
+
+# Install Python 3 packages
+RUN conda install --quiet --yes \
+    'beautifulsoup4=4.8.*' \
+    'conda-forge::blas=*=openblas' \
+    'bokeh=1.4.*' \
+    'cloudpickle=1.3.*' \
+    'cython=0.29.*' \
+    'dask=2.11.*' \
+    'dill=0.3.*' \
+    'h5py=2.10.*' \
+    'hdf5=1.10.*' \
+    'ipywidgets=7.5.*' \
+    'ipympl=0.5.*'\
+    'matplotlib-base=3.1.*' \
+    'numba=0.48.*' \
+    'numexpr=2.7.*' \
+    'pandas=1.0.*' \
+    'patsy=0.5.*' \
+    'protobuf=3.11.*' \
+    'scikit-image=0.16.*' \
+    'scikit-learn=0.22.*' \
+    'scipy=1.4.*' \
+    'seaborn=0.10.*' \
+    'sqlalchemy=1.3.*' \
+    'statsmodels=0.11.*' \
+    'sympy=1.5.*' \
+    'vincent=0.4.*' \
+    'widgetsnbextension=3.5.*'\
+    'xlrd' \
+    && \
+    conda clean --all -f -y && \
+    # Activate ipywidgets extension in the environment that runs the notebook server
+    jupyter nbextension enable --py widgetsnbextension --sys-prefix && \
+    # Also activate ipywidgets extension for JupyterLab
+    # Check this URL for most recent compatibilities
+    # https://github.com/jupyter-widgets/ipywidgets/tree/master/packages/jupyterlab-manager
+    jupyter labextension install @jupyter-widgets/jupyterlab-manager@^1.1.0 --no-build && \
+    jupyter labextension install jupyterlab_bokeh@1.0.0 --no-build && \
+    jupyter labextension install jupyter-matplotlib --no-build && \
+    jupyter lab build && \
+    npm cache clean --force && \
+    rm -rf $CONDA_DIR/share/jupyter/lab/staging && \
+    rm -rf /home/$NB_USER/.cache/yarn && \
+    rm -rf /home/$NB_USER/.node-gyp && \
+    fix-permissions $CONDA_DIR && \
+    fix-permissions /home/$NB_USER
+
+# Install facets which does not have a pip or conda package at the moment
+RUN cd /tmp && \
+    git clone https://github.com/PAIR-code/facets.git && \
+    cd facets && \
+    jupyter nbextension install facets-dist/ --sys-prefix && \
+    cd && \
+    rm -rf /tmp/facets && \
+    fix-permissions $CONDA_DIR && \
+    fix-permissions /home/$NB_USER
+
+# Import matplotlib the first time to build the font cache.
+ENV XDG_CACHE_HOME /home/$NB_USER/.cache/
+RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot" && \
+    fix-permissions /home/$NB_USER
+
+USER $NB_UID
