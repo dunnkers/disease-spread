@@ -1,0 +1,21 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sparknotebook-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sparknotebook
+  template:
+    metadata:
+      labels:
+        app: sparknotebook
+    spec:
+      containers:
+        - name: sparknotebook
+          image: dunnkers/disease-spread:spark
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 8888
