@@ -7,8 +7,7 @@ ARG PROJ_INSTALL_PREFIX=/usr/local
 
 FROM jupyter/scipy-notebook as builder
 
-# Derived from osgeo/proj by Howard Butler <howard@hobu.co>
-MAINTAINER Even Rouault <even.rouault@spatialys.com>
+USER root
 
 # Setup build env for PROJ
 RUN apt-get update -y \
