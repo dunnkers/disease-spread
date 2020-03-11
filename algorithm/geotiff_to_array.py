@@ -1,11 +1,10 @@
 import rasterio
-from rasterio.warp import calculate_default_transform, reproject, Resampling
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage
 
 # local directory from where we import the geotiff file
-directory = 'C:/Users/joris/Desktop/Universiteit/Master - Applied Mathematics/Scalable Computing/data/world_population_complete_normalized.tif'
+directory = 'C:/Users/joris/Desktop/Universiteit/Master - Mathematics/Scalable Computing/data/world_population_normalized_m.tif'
 file_is_normalized = True
 
 with rasterio.open(directory) as src:
@@ -21,7 +20,6 @@ with rasterio.open(directory) as src:
         # Note that now the data points are larger than 0 and the nodata points are equal to 0
         array[array==0] = np.nan  # set nodata points back to nan (so they won't be plotted)
     print('data is imported and pre-processed')
-
 
 # There are too many data points, so we compress the large matrix into smaller blocks
 # And take the average longitude and latitude and population value per block
