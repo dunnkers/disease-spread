@@ -19,7 +19,14 @@
               imagePullPolicy: "Always"
               ports:
                 - containerPort: 8888
-    
+              volumeMounts:
+                - mountPath: /home/jovyan
+                  name: jupyterstorage
+          volumes:
+            - name: jupyterstorage
+              emptyDir: {}
+  
+# -> INCREASE RESOURCES.
 
 # -> then, do not forget to expose the port to an external IP address if
 # you want to access the Notebook from the outside.
