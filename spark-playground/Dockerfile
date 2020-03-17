@@ -72,8 +72,7 @@ RUN conda install --quiet -y 'pyarrow' && \
 ## WARNING! THIS PIECE OF CODE UNTESTED, WAS EXECUTED ON CLUSTER ITSELF.
 # Create environment for correct python version
 RUN conda create -n py27 python=2.7 -y && \
-    conda activate py27 && \
-    conda install ipykernel -y && \
+    conda install ipykernel -y -n py27 && \
     python -m ipykernel install --user --name py27 --display-name "Python 2.7" && \
     pip install findspark && \
     pip install py4j
