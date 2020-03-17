@@ -84,11 +84,12 @@ https://docs.bitnami.com/google/get-started-gke/#step-4-install-and-configure-he
 
 ## Install spark
 
-8. Installing a Spark cluster
-https://github.com/helm/charts/tree/master/stable/spark
+1. Installing a Spark cluster
+https://hub.helm.sh/charts/microsoft/spark
 
 ```shell
-helm install --name my-spark stable/spark
+helm repo add microsoft https://microsoft.github.io/charts/repo
+helm install microsoft/spark --version 1.0.0
 ```
 
 
