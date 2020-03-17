@@ -20,7 +20,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: sparknotebook
-          image: dunnkers/disease-spread:spark
+          image: jupyter/pyspark-notebook
           imagePullPolicy: "Always"
           ports:
             - containerPort: 8888
