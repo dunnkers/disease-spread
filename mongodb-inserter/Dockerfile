@@ -1,11 +1,16 @@
-FROM python:3.5-alpine3.11
+# FROM python:3.5-alpine3.11
+FROM jupyter/scipy-notebook:latest
 
-RUN pip3 install -r requirements.txt
+ADD requirements.txt .
 
-RUN mkdir /app
+RUN pip install -r requirements.txt
 
-WORKDIR /app
+RUN rm requirements.txt
+
+RUN mkdir /home/jovyan/app
+
+WORKDIR /home/jovyan/app
 
 ADD . .
 
-ENTRYPOINT python3 main.py
+# ENTRYPOINT python3 main.py
