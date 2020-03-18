@@ -189,4 +189,8 @@ spec:
   type: LoadBalancer
 ```
 
+4. (optionally) upgrade chart to use a password:
+`helm upgrade winning-ocelot cowboysysop/mongo-express --version 1.0.1 --set mongodbServer=my-mongodb,mongodbEnableAdmin=true,mongodbAdminPassword=jLWIWnJKe7,basicAuthUsername=admin,basicAuthPassword=scalable123`
+-> or put the attributes basicAuth right from the start.
+
 -> also available in `mongo-express-config` folder
