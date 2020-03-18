@@ -159,3 +159,34 @@ We can verify there exist only one node pool now using:
 ```shell
 gcloud container node-pools list --cluster cluster-1
 ```
+
+## Installing mongo-express
+
+https://hub.helm.sh/charts/cowboysysop/mongo-express
+
+1. `helm repo add cowboysysop https://cowboysysop.github.io/charts/`
+
+2. `helm install cowboysysop/mongo-express --version 1.0.1 --set mongodbServer=my-mongodb,mongodbEnableAdmin=true,mongodbAdminPassword=jLWIWnJKe7`
+
+3. Expose external IP:
+
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: mongo-express
+  name: mongo-express-service
+spec:
+  ports:
+  - port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app.kubernetes.io/name: mongo-express
+  sessionAffinity: None
+  type: LoadBalancer
+```
+
+-> also available in `mongo-express-config` folder
