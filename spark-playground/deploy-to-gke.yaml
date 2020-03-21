@@ -53,3 +53,7 @@ spec:
     app: sparknotebook
   sessionAffinity: None
   type: LoadBalancer
+
+  # if mongodb-connect doesn't work:
+  # add ENV VAR: 
+  # SPARK_OPTS="$SPARK_OPTS --packages org.mongodb.spark:mongo-spark-connector_2.11:2.4.1"
