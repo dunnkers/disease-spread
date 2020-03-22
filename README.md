@@ -211,3 +211,11 @@ spec:
 -> or put the attributes basicAuth right from the start.
 
 -> also available in `mongo-express-config` folder
+
+
+
+### Special note
+
+Copying files from pod to local filesystem.
+
+`kubectl cp my-spark-zeppelin-77464b95b-7f7nb:datadump.json datadump.json`
