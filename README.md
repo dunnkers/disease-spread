@@ -89,16 +89,24 @@ https://hub.helm.sh/charts/microsoft/spark
 
 ```shell
 helm repo add microsoft https://microsoft.github.io/charts/repo
-helm install microsoft/spark --version 1.0.0
+helm install --name my-spark microsoft/spark --version 1.0.0
 ```
 
 2. (optionally) specify more suitable values for desired cpu and memory:
 
 ```shell
-helm install microsoft/spark --version 1.0.0 --set Worker.Memory=512m,Worker.DaemonMemory=1g,Worker.ExecutorMemory=1g
+helm install --name my-spark microsoft/spark --version 1.0.0 --set Worker.Memory=1024Mi,Worker.DaemonMemory=1g,Worker.ExecutorMemory=1g,Livy.Enabled=false
 ```
 
-(default is `2048Mi` for `Worker.Memory`, which is probably too high for your GKE cluster.)
+(default is `2g` for `Worker.Memory`, which is probably too high for your GKE cluster.)
+
+
+_(or, using Bitnami chart:)_
+```shell
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install --name my-spark bitnami/spark --set service.type=LoadBalancer
+```
+
 
 ## Installing mongodb
 
