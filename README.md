@@ -91,6 +91,15 @@ https://hub.helm.sh/charts/microsoft/spark
 helm repo add microsoft https://microsoft.github.io/charts/repo
 helm install microsoft/spark --version 1.0.0
 ```
+
+2. (optionally) specify more suitable values for desired cpu and memory:
+
+```shell
+helm install microsoft/spark --version 1.0.0 --set Worker.Memory=512m,Worker.DaemonMemory=1g,Worker.ExecutorMemory=1g
+```
+
+(default is `2048Mi` for `Worker.Memory`, which is probably too high for your GKE cluster.)
+
 ## Installing mongodb
 
 To  install the mongodb helm chart with a repo stable that looks at https://kubernetes-charts.storage.googleapis.com/: 
