@@ -19,7 +19,13 @@
           runAsUser: 1000
           runAsNonRoot: true
         containers:
-          - name: importer
+          - env:
+            - name: MONGODB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: mongodb-root-password
+                  name: my-mongodb
+            name: importer
             image: eu.gcr.io/sixth-utility-268609/importer:latest
             imagePullPolicy: "Always"
             ports:
