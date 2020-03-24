@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 import json
+from os import getenv
 
 password = getenv('MONGODB_ROOT_PASSWORD')
 client = MongoClient('mongodb://root:{}@my-mongodb:27017'.format(password))
