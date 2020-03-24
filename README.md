@@ -67,6 +67,31 @@ kubectl expose deployment kafdrop --type=LoadBalancer --name=kafdrop-external-se
 ```
 
 This will create an external IP address such that you can access Kafdrop from your browser. ✌🏼 (in production though, you will probably not want to do this.)
+
+Or, use a config as such:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: kafdrop
+    app.kubernetes.io/managed-by: Tiller
+    app.kubernetes.io/name: kafdrop
+    helm.sh/chart: kafdrop-0.1.0
+  name: kafdrop-external-service
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - nodePort: 31276
+    port: 9000
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    app.kubernetes.io/instance: kafdrop
+    app.kubernetes.io/name: kafdrop
+  sessionAffinity: None
+  type: LoadBalancer
+```
 <!-- 
 1. We use **Helm** to obtain 'charts' (packages) for Kubernetes:
 https://docs.bitnami.com/google/get-started-gke/#step-4-install-and-configure-helm
