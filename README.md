@@ -110,10 +110,18 @@ helm install --name my-spark bitnami/spark --set service.type=LoadBalancer
 
 ## Installing mongodb
 
-To  install the mongodb helm chart with a repo stable that looks at https://kubernetes-charts.storage.googleapis.com/: 
+Bitnami mongodb chart:
+
+https://github.com/bitnami/charts/tree/master/bitnami/mongodb
+
+1. ```shell
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install --name my-mongodb bitnami/mongodb --set replicaSet.enabled=true,mongodbRootPassword=scalable123,mongodbUsername=admin,mongodbDatabase=geotest-db,mongodbPassword=scalable123
+```
+<!-- To  install the mongodb helm chart with a repo stable that looks at https://kubernetes-charts.storage.googleapis.com/: 
 ```shell
 helm install my-mongodb stable/mongodb-7.8.7
-```
+``` -->
 
 This will create a mongodb node witha an associated service ánd generates a secret called `mongodb-root-password` for authentication. To use it in a container that is supposed to connect to mongodb add the following to the container environment variables section in the deployment yaml:
 ```yaml
@@ -183,7 +191,7 @@ https://hub.helm.sh/charts/cowboysysop/mongo-express
 
 1. `helm repo add cowboysysop https://cowboysysop.github.io/charts/`
 
-2. `helm install cowboysysop/mongo-express --version 1.0.1 --set mongodbServer=my-mongodb,mongodbEnableAdmin=true,mongodbAdminPassword=jLWIWnJKe7`
+2. `helm install --name my-mongo-express cowboysysop/mongo-express --version 1.1.0 --set mongodbServer=my-mongodb,mongodbEnableAdmin=true,mongodbAdminPassword=scalable123,basicAuthUsername=admin,basicAuthPassword=scalable123`
 
 3. Expose external IP:
 

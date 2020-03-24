@@ -1,0 +1,2 @@
+### Storing config files
+`gcloud container clusters get-credentials cluster-1 --zone europe-north1-a --project sixth-utility-268609 && kubectl get service my-mongodb-headless -o yaml > my-mongodb-headless.yaml`
