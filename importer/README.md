@@ -2,7 +2,10 @@
 
 To build an image for Google Container Registry, run:
 
-`docker build -t eu.gcr.io/sixth-utility-268609/importer`
+```shell
+cd ./importer
+docker build -t eu.gcr.io/sixth-utility-268609/importer .
+```
 
 (use `latest` tag if applicable)
 
