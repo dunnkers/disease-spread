@@ -27,7 +27,7 @@ def ith_(v, i):
 
 ith = udf(ith_, FloatType()) # unlist a vector
 unlist = udf(lambda x: round(float(list(x)[0]),3), FloatType()) # converting column type from vector to double type
-log10_udf = udf(lambda y: np.log10(y), FloatType()) # unlist a vector
+log10_udf = udf(lambda y: np.log10(y), FloatType()) # log10 of an element
 take_first_udf = udf(lambda y: y[0], FloatType()) # take first element of a list
 take_second_udf = udf(lambda y: y[1], FloatType()) # take second element of a list
 
