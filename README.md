@@ -34,6 +34,9 @@ helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubato
 helm install --name my-kafka incubator/kafka
 ```
 
+Bitnami chart upgrading replicas amount:
+`helm upgrade my-kafka bitnami/kafka --set replicaCount=3,defaultReplicationFactor=3,offsetsTopicReplicationFactor=3,transactionStateLogReplicationFactor=3,transactionStateLogMinIsr=3`
+
 ## Installing Kafdrop
 7. Installing Kafdrop
 
@@ -67,6 +70,31 @@ kubectl expose deployment kafdrop --type=LoadBalancer --name=kafdrop-external-se
 ```
 
 This will create an external IP address such that you can access Kafdrop from your browser. ✌🏼 (in production though, you will probably not want to do this.)
+
+Or, use a config as such:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: kafdrop
+    app.kubernetes.io/managed-by: Tiller
+    app.kubernetes.io/name: kafdrop
+    helm.sh/chart: kafdrop-0.1.0
+  name: kafdrop-external-service
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - nodePort: 31276
+    port: 9000
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    app.kubernetes.io/instance: kafdrop
+    app.kubernetes.io/name: kafdrop
+  sessionAffinity: None
+  type: LoadBalancer
+```
 <!-- 
 1. We use **Helm** to obtain 'charts' (packages) for Kubernetes:
 https://docs.bitnami.com/google/get-started-gke/#step-4-install-and-configure-helm
@@ -110,10 +138,18 @@ helm install --name my-spark bitnami/spark --set service.type=LoadBalancer
 
 ## Installing mongodb
 
-To  install the mongodb helm chart with a repo stable that looks at https://kubernetes-charts.storage.googleapis.com/: 
+Bitnami mongodb chart:
+
+https://github.com/bitnami/charts/tree/master/bitnami/mongodb
+
+1. ```shell
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install --name my-mongodb bitnami/mongodb --set replicaSet.enabled=true,mongodbRootPassword=scalable123,mongodbUsername=admin,mongodbDatabase=geotest-db,mongodbPassword=scalable123
+```
+<!-- To  install the mongodb helm chart with a repo stable that looks at https://kubernetes-charts.storage.googleapis.com/: 
 ```shell
 helm install my-mongodb stable/mongodb-7.8.7
-```
+``` -->
 
 This will create a mongodb node witha an associated service ánd generates a secret called `mongodb-root-password` for authentication. To use it in a container that is supposed to connect to mongodb add the following to the container environment variables section in the deployment yaml:
 ```yaml
@@ -183,7 +219,7 @@ https://hub.helm.sh/charts/cowboysysop/mongo-express
 
 1. `helm repo add cowboysysop https://cowboysysop.github.io/charts/`
 
-2. `helm install cowboysysop/mongo-express --version 1.0.1 --set mongodbServer=my-mongodb,mongodbEnableAdmin=true,mongodbAdminPassword=jLWIWnJKe7`
+2. `helm install --name my-mongo-express cowboysysop/mongo-express --version 1.1.0 --set mongodbServer=my-mongodb,mongodbEnableAdmin=true,mongodbAdminPassword=scalable123,basicAuthUsername=admin,basicAuthPassword=scalable123`
 
 3. Expose external IP:
 

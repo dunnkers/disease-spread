@@ -19,7 +19,13 @@ spec:
         runAsUser: 1000
         runAsNonRoot: true
       containers:
-        - name: sparknotebook
+        - env:
+          - name: MONGODB_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: mongodb-root-password
+                name: my-mongodb
+          name: sparknotebook
           image: jupyter/pyspark-notebook
           imagePullPolicy: "Always"
           ports:

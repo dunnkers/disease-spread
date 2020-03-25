@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: visualization-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: visualization
+  template:
+    metadata:
+      labels:
+        app: visualization
+    spec:
+      containers:
+        - env:
+          - name: MONGODB_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: mongodb-root-password
+                name: my-mongodb
+          name: visualization
+          image: eu.gcr.io/sixth-utility-268609/visualization:latest
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 7000
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: visualization-service
+spec:
+  selector:
+    app: visualization
+  ports:
+    - protocol: "TCP"
+      # Port accessible inside cluster
+      port: 7000
+      # Port to forward to inside the pod
+      targetPort: 7000
+  type: LoadBalancer
+  sessionAffinity: "ClientIP"
+              
