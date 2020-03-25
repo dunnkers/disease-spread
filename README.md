@@ -34,6 +34,9 @@ helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubato
 helm install --name my-kafka incubator/kafka
 ```
 
+Bitnami chart upgrading replicas amount:
+`helm upgrade my-kafka bitnami/kafka --set replicaCount=3,defaultReplicationFactor=3,offsetsTopicReplicationFactor=3,transactionStateLogReplicationFactor=3,transactionStateLogMinIsr=3`
+
 ## Installing Kafdrop
 7. Installing Kafdrop
 
