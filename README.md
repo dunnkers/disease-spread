@@ -123,7 +123,7 @@ helm install --name my-spark microsoft/spark --version 1.0.0
 2. (optionally) specify more suitable values for desired cpu and memory:
 
 ```shell
-helm install --name my-spark microsoft/spark --version 1.0.0 --set Worker.Memory=1024Mi,Worker.DaemonMemory=1g,Worker.ExecutorMemory=1g,Livy.Enabled=false
+helm install --name my-spark microsoft/spark --version 1.0.0 --set Worker.Memory=2048Mi,Worker.DaemonMemory=1g,Worker.ExecutorMemory=1g,Livy.Enabled=false
 ```
 
 (default is `2g` for `Worker.Memory`, which is probably too high for your GKE cluster.)
@@ -135,6 +135,11 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install --name my-spark bitnami/spark --set service.type=LoadBalancer
 ```
 
+Testing whether your master accepts jobs:
+
+```shell
+./bin/spark-submit --master spark://my-spark-master:7077 --deploy-mode cluster --name spark-pi --class org.apache.spark.examples.SparkPi --conf spark.kubernetes.container.image=spark:v2.4.3 /opt/spark/examples/jars/spark-examples_2.11-2.4.3.jar
+```
 
 ## Installing mongodb
 
