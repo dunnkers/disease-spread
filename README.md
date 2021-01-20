@@ -267,6 +267,6 @@ Copying files from pod to local filesystem.
 `kubectl cp my-spark-zeppelin-77464b95b-7f7nb:datadump.json datadump.json`
 
 ## About
-Project as part of the Scalable Computing course, taught at the University of Groningen (RUG) [`WMCS16003`].
+Project as part of the _Scalable Computing_ course (`WMCS16003`), taught at the University of Groningen (RUG) in the Data Science and Systems Complexity Master programme.
 
 Built by [Jeroen Overschie](https://dunnkers.com), Joris de Jong and Pieter Dekker.
