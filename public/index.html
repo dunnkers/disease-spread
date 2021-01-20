@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Corona Dashboard - Scalable Computing Group 1 🚀</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.css" rel="stylesheet" />
+    <script src='https://npmcdn.com/csv2geojson@latest/csv2geojson.js'></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #menu {
+            background: #fff;
+            position: absolute;
+            z-index: 1;
+            top: 10px;
+            right: 10px;
+            border-radius: 3px;
+            width: 120px;
+            border: 1px solid rgba(0, 0, 0, 0.4);
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        #menu a {
+            font-size: 13px;
+            color: #404040;
+            display: block;
+            margin: 0;
+            padding: 0;
+            padding: 10px;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+            text-align: center;
+        }
+
+        #menu a:last-child {
+            border: none;
+        }
+
+        #menu a:hover {
+            background-color: #f8f8f8;
+            color: #404040;
+        }
+
+        #menu a.active {
+            background-color: #3887be;
+            color: #ffffff;
+        }
+
+        #menu a.active:hover {
+            background: #3074a4;
+        }
+
+
+        .element-with-timer {
+            position: absolute;
+            z-index: 5;
+            background-color:white;
+            font-size: 11px;
+            margin-left:5px;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        /* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+}
+
+.tooltiptext a {
+    color: white;
+    text-decoration: none;
+}
+.tooltiptext a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 250px;
+  background-color: #3887be;
+  color: #fff;
+  /* text-align: center; */
+  padding: 5px 5px;
+  border-radius: 6px;
+ 
+  /* Position the tooltip text - see examples below! */
+  position: absolute;
+  z-index: 1;
+}
+
+.tooltiptext img {
+    width: 12px;
+    vertical-align: sub;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+    </style>
+</head>
+
+<body>
+    <nav id="menu"></nav>   
+    <div id="map"></div>
+    <div class="element-with-timer tooltip">
+        (&#10068;) About the data
+        <div class="tooltiptext">
+
+        <table>
+            <tr><td>Vulnerable population hotspots:</td><td>archived since 30-03-2020</td></tr>
+            <tr><td>Corona tweets:</td><td>archived since 30-03-2020</td></tr>
+            <tr><td>Corona stats:</td><td><a target="_blank" href="https://github.com/CSSEGISandData/COVID-19"><b>live</b> data <img src="./new-tab.png" align="middle" /></a></td></tr>
+            <tr><td colspan="2">> see <a target="_blank" href="https://github.com/dunnkers/disease-spread-visualization">Github page <img src="./new-tab.png" align="middle" /></a> for more info.</td></tr>
+        </table>
+    </div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZHVubmtlcnMiLCJhIjoiY2s4NXE1ZmFxMDhycjNobzBnb2gwN3NlMSJ9.hqWhQ1QBv9regtpGRE0Qsw';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            zoom: 0
+        });
+
+        $(document).ready(function () {
+            $.ajax({
+                type: "GET",
+                url: 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv',
+                dataType: "text",
+                success: function (csvData) { makeGeoJSON(csvData); }
+            });
+        });
+
+        function makeGeoJSON(csvData) {
+            csv2geojson.csv2geojson(csvData, {
+                latfield: 'Lat',
+                lonfield: 'Long',
+                delimiter: ','
+            }, function (err, data) {
+
+                // sum corona data numeric values
+                transformFeature = feature => {
+                    all_ints = Object.entries(feature.properties)
+                        .map(val => val[1])
+                        .filter(val => Number.isInteger(Number(val)))
+                        .map(val => Number(val));
+                    summation = all_ints.reduce((a, b) => b, 0); // take last int
+
+                    feature.properties.sum = summation
+                    return feature
+                };
+                data.features = data.features.map(transformFeature);
+
+
+                var url_tweets = './results.json';
+                var url_algorithm = './results_algorithm.json';
+                map.on('load', function () {
+                    window.setInterval(function () {
+                        map.getSource('tweets').setData(url_tweets);
+                        map.getSource('algorithm').setData(url_algorithm);
+                    }, 2000);
+                    map.loadImage("./logo.png", function (error, image) {
+                        if (error) throw error;
+                        map.addImage("custom-marker", image);
+                    });
+                    // map.loadImage("./virus.png", function (error, image) {
+                    //     if (error) throw error;
+                    //     map.addImage("virus-marker", image);
+                    // });
+
+
+                    map.addSource('algorithm', { type: 'geojson', data: url_algorithm });
+                    map.addLayer({
+                        'id': 'Vulnerable population hotspots',
+                        'type': 'heatmap',
+                        'source': 'algorithm',
+                        'layout': {
+                            'visibility': 'visible'
+                        },
+                        'paint': {
+                            'heatmap-weight': [
+                                'interpolate',
+                                ['linear'],
+                                ['get', 'pop'],
+                                0, 0,
+                                1, 1
+                            ],
+                        },
+                        'filter': ['>', 'pop', 0]
+                    });
+
+                    map.addSource('tweets', { type: 'geojson', data: url_tweets });
+                    map.addLayer({
+                        'id': 'Corona tweets',
+                        'type': 'symbol',
+                        'source': 'tweets',
+                        'layout': {
+                            'visibility': 'visible',
+                            // icons at https://github.com/mapbox/mapbox-gl-styles#standard-icons
+                            'icon-image': 'custom-marker',
+                            'text-field': ['get', 'tweets'],
+                            'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+                            'text-radial-offset': 0.5,
+                            'text-justify': 'auto'
+                        },
+                        'filter': ['>', 'tweets', 0]
+                    });
+
+                    map.addLayer({
+                        'id': 'Corona stats',
+                        'type': 'symbol',
+                        'source': {
+                            'type': 'geojson',
+                            'data': data
+                        },
+                        'layout': {
+                            'visibility': 'visible',
+                            // "icon-image": "virus-marker"
+                            "icon-image": "hospital-15",
+                            'text-field': ['get', 'sum'],
+                            'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+                            'text-radial-offset': 0.5,
+                            'text-justify': 'auto',
+                            // 'text-size': 12,
+                            'text-size': [
+                                'interpolate',
+                                ['linear'],
+                                ['get', 'sum'],
+                                0, 8,
+                                100000, 20
+                            ],
+                        },
+                        'paint': {
+                        }
+                    });
+                });
+
+                var toggleableLayerIds = ['Vulnerable population hotspots', 
+                    'Corona tweets', 'Corona stats'];
+
+                for (var i = 0; i < toggleableLayerIds.length; i++) {
+                    var id = toggleableLayerIds[i];
+
+                    var link = document.createElement('a');
+                    link.href = '#';
+                    link.className = 'active';
+                    link.textContent = id;
+
+                    link.onclick = function (e) {
+                        var clickedLayer = this.textContent;
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
+
+                        if (visibility === 'visible') {
+                            map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+                            this.className = '';
+                        } else {
+                            this.className = 'active';
+                            map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+                        }
+                    };
+
+                    var layers = document.getElementById('menu');
+                    layers.appendChild(link);
+                }
+
+                // end of makeGeoJSON function
+            });
+        }
+    </script>
+
+</body>
+
+</html>
