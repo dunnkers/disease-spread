@@ -3,7 +3,7 @@ We are in the midst of a global pandemic. At the time this project started, the 
 
 [![corona-visualization.png](corona-visualization.png)](https://dunnkers.com/disease-spread)
 
-See [the visualization](https://dunnkers.com/disease-spread).
+See [the visualization](https://dunnkers.com/disease-spread). Or check out the [report (PDF)](https://github.com/dunnkers/disease-spread/blob/master/SCC%20Report.pdf).
 
 ## General architecture - configuring GCP
 
